@@ -7,7 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +15,7 @@ import (
 )
 
 
-func ValidateSession() gin.HandlerFunc {
+func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
     return func(c *gin.Context) {
         // Permitir que las peticiones a la ruta raíz pasen sin validación
         if c.Request.URL.Path == "/api/v1/dcd/" {
@@ -37,7 +36,7 @@ func ValidateSession() gin.HandlerFunc {
 		}
 
         // Crear la solicitud para validar el JWT
-        req, err := http.NewRequest("POST", os.Getenv("USUARIOS")+"/api/v1/ValidateJWT", nil)
+        req, err := http.NewRequest("POST", urlapiusuarios+"/api/v1/ValidateJWT", nil)
         if err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
             c.Abort()
@@ -69,7 +68,7 @@ func ValidateSession() gin.HandlerFunc {
     }
 }
 
-func SaveDocuments(file *multipart.FileHeader, email string) string {
+func SaveDocuments(file *multipart.FileHeader, email string, urlsavefiles string) string {
 	fileContent, err := file.Open()
 	if err != nil {
 		return ""
@@ -98,7 +97,7 @@ func SaveDocuments(file *multipart.FileHeader, email string) string {
 
 	writer.Close()
 
-	path, err := makePostRequest(os.Getenv("URL_SAVE_FILES") + "SaveDocuments", reqBody.Bytes(), writer.FormDataContentType())
+	path, err := makePostRequest(urlsavefiles + "SaveDocuments", reqBody.Bytes(), writer.FormDataContentType())
 	if err != nil {
 		return ""
 	}
