@@ -53,7 +53,8 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
         if err != nil {
 			fmt.Println("Error:", err)
 			fmt.Println("Cookie:", cookie)
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate session"})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate session" + "error" + 
+			err.Error() + "cookie" + cookie})
             c.Abort()
             return
         }
