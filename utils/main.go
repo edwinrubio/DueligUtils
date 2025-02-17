@@ -51,9 +51,9 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
         client := &http.Client{}
         resp, err := client.Do(req)
         if err != nil {
+			fmt.Println("Error:", err)
+			fmt.Println("Cookie:", cookie)
             c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate session"})
-			print(err)
-            print(cookie)
             c.Abort()
             return
         }
