@@ -50,13 +50,8 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 
         client := &http.Client{}
         resp, err := client.Do(req)
-		print(err)
-        print(cookie)
         if err != nil {
-			fmt.Println("Error:", err)
-			fmt.Println("Cookie:", cookie)
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate session" + "error" + 
-			err.Error() + "cookie" + cookie})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate session"})
             c.Abort()
             return
         }
@@ -169,7 +164,7 @@ func ExtractUserIDFromToken(bearerToken string) (primitive.ObjectID, error) {
     return primitive.NilObjectID, fmt.Errorf("invalid token claims")
 }
 
-func SaveImage(url string, email string, urlsavefiles string) string {
+func SaveImageFromUrl(url string, email string, urlsavefiles string) string {
     reqBody, _ := json.Marshal(map[string]string{
         "Url":      url,
         "Kindfile": "images",
@@ -178,4 +173,42 @@ func SaveImage(url string, email string, urlsavefiles string) string {
 
     path, _ := makePostRequest(urlsavefiles + "ImagesFromUrl", reqBody, "application/json")
     return path
+}
+
+
+
+func SaveImage(file *multipart.FileHeader, email string, urlsavefiles string) string {
+	fileContent, err := file.Open()
+	if err != nil {
+		return ""
+	}
+	defer fileContent.Close()
+
+	var reqBody bytes.Buffer
+	writer := multipart.NewWriter(&reqBody)
+	part, err := writer.CreateFormFile("file", file.Filename)
+	if err != nil {
+		return ""
+	}
+	_, err = io.Copy(part, fileContent)
+	if err != nil {
+		return ""
+	}
+
+	err = writer.WriteField("Kindfile", "images")
+	if err != nil {
+		return ""
+	}
+	err = writer.WriteField("Email", email)
+	if err != nil {
+		return ""
+	}
+
+	writer.Close()
+
+	path, err := makePostRequest(urlsavefiles + "SaveImages", reqBody.Bytes(), writer.FormDataContentType())
+	if err != nil {
+		return ""
+	}
+	return path
 }
