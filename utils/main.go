@@ -129,15 +129,15 @@ func ExtractUserIDFromToken(bearerToken string) (primitive.ObjectID, error) {
 	return primitive.NilObjectID, fmt.Errorf("invalid token claims")
 }
 
-func SaveImageFromUrl(url string, email string, urlsavefiles string) string {
+func SaveImageFromUrl(url string, email string, urlsavefiles string) (string, error){
 	reqBody, _ := json.Marshal(map[string]string{
 		"Url":      url,
 		"Kindfile": "images",
 		"Email":    email,
 	})
 
-	path, _ := makePostRequest(urlsavefiles+"ImagesFromUrl", reqBody, "application/json")
-	return path
+	path, err := makePostRequest(urlsavefiles+"ImagesFromUrl", reqBody, "application/json")
+	return path, err
 }
 
 func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) (string, error) {
