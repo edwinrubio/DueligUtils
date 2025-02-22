@@ -140,10 +140,10 @@ func SaveImageFromUrl(url string, email string, urlsavefiles string) string {
 	return path
 }
 
-func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) string {
+func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) (string, error) {
 	fileContent, err := file.Open()
 	if err != nil {
-		return ""
+		return "", err
 	}
 	defer fileContent.Close()
 
@@ -151,7 +151,7 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) st
 	buffer := make([]byte, 512)
 	_, err = fileContent.Read(buffer)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	filekind := GetFileKind(http.DetectContentType(buffer))
@@ -163,29 +163,29 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) st
 	writer := multipart.NewWriter(&reqBody)
 	part, err := writer.CreateFormFile("file", file.Filename)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	_, err = io.Copy(part, fileContent)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	err = writer.WriteField("Kindfile", filekind)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	err = writer.WriteField("Email", email)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	writer.Close()
 
 	path, err := makePostRequest(urlsavefiles+"Save"+filekind, reqBody.Bytes(), writer.FormDataContentType())
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return path
+	return path, err
 }
 
 func GetFileKind(fileType string) string {
