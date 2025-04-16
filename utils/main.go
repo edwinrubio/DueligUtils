@@ -14,6 +14,23 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// extractHeaders obtiene las cabeceras comunes de autenticación del contexto
+func extractHeaders(c *gin.Context) map[string]string {
+	return map[string]string{
+		"Authorization": c.GetHeader("Authorization"),
+		"X-CSRF-Token":  c.GetHeader("X-CSRF-Token"),
+		"Cookie":        c.GetHeader("Cookie"),
+		"Path":          c.Request.URL.Path,
+	}
+}
+
+// applyHeaders aplica un conjunto de cabeceras a una solicitud HTTP
+func applyHeaders(req *http.Request, headers map[string]string) {
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+}
+
 func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Permitir que las peticiones a la ruta raíz pasen sin validación
@@ -22,13 +39,10 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 			return
 		}
 
-		// Obtener el header de autorización
-		authHeader := c.GetHeader("Authorization")
-		csrfToken := c.GetHeader("X-CSRF-Token")
-		cookie := c.GetHeader("Cookie")
-		path := c.Request.URL.Path
+		// Obtener cabeceras comunes
+		headers := extractHeaders(c)
 
-		if authHeader == "" {
+		if headers["Authorization"] == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization header"})
 			c.Abort()
 			return
@@ -42,10 +56,8 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 			return
 		}
 
-		req.Header.Set("Authorization", authHeader)
-		req.Header.Set("X-CSRF-Token", csrfToken)
-		req.Header.Set("Cookie", cookie)
-		req.Header.Set("Path", path)
+		// Aplicar cabeceras a la solicitud
+		applyHeaders(req, headers)
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
@@ -66,8 +78,6 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-
 
 func makePostRequest(url string, reqBody []byte, kindBody string) (string, error) {
 	resp, err := http.Post(url, kindBody, bytes.NewBuffer(reqBody))
@@ -129,7 +139,7 @@ func ExtractUserIDFromToken(bearerToken string) (primitive.ObjectID, error) {
 	return primitive.NilObjectID, fmt.Errorf("invalid token claims")
 }
 
-func SaveImageFromUrl(url string, email string, urlsavefiles string) (string, error){
+func SaveImageFromUrl(url string, email string, urlsavefiles string) (string, error) {
 	reqBody, _ := json.Marshal(map[string]string{
 		"Url":      url,
 		"Kindfile": "images",
@@ -140,7 +150,7 @@ func SaveImageFromUrl(url string, email string, urlsavefiles string) (string, er
 	return path, err
 }
 
-func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) (string, error) {
+func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string, c *gin.Context) (string, error) {
 	fileContent, err := file.Open()
 	if err != nil {
 		return "", err
@@ -159,6 +169,23 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) (s
 	// Resetear el puntero del archivo
 	fileContent.Seek(0, io.SeekStart)
 
+	// Crear formulario para c.Request
+	err = c.Request.ParseMultipartForm(32 << 20) // 32 MB
+	if err != nil {
+		return "", err
+	}
+
+	// Preparar la solicitud al servicio de archivos
+	req, err := http.NewRequest("POST", urlsavefiles+"Save"+filekind, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Obtener y aplicar cabeceras comunes
+	headers := extractHeaders(c)
+	applyHeaders(req, headers)
+
+	// Crear un nuevo formulario multipart
 	var reqBody bytes.Buffer
 	writer := multipart.NewWriter(&reqBody)
 	part, err := writer.CreateFormFile("file", file.Filename)
@@ -181,11 +208,32 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string) (s
 
 	writer.Close()
 
-	path, err := makePostRequest(urlsavefiles+"Save"+filekind, reqBody.Bytes(), writer.FormDataContentType())
+	// Establecer el tipo de contenido
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Body = io.NopCloser(&reqBody)
+	req.ContentLength = int64(reqBody.Len())
+
+	// Hacer la solicitud HTTP
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
-	return path, err
+	defer resp.Body.Close()
+
+	// Verificar la respuesta
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
+	}
+
+	var result struct {
+		Result string `json:"file_path"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	return result.Result, nil
 }
 
 func GetFileKind(fileType string) string {
@@ -221,24 +269,23 @@ func CORSMiddleware(cors_urls string) gin.HandlerFunc {
 
 		allowedOrigins := strings.Split(cors_urls, ",")
 		origin := c.Request.Header.Get("Origin")
-		
+
 		// Verifica si el origen está en la lista de permitidos
 		for _, allowedOrigin := range allowedOrigins {
 			if strings.TrimSpace(allowedOrigin) == origin {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			break
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				break
 			}
 		}
-        c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-        c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Accept, Origin, Cache-Control, X-Requested-With, client-type")
-        c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Accept, Origin, Cache-Control, X-Requested-With, client-type")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 
-        if c.Request.Method == "OPTIONS" {
-            c.AbortWithStatus(204)
-            return
-        }
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
 
-        c.Next()
+		c.Next()
 	}
 }
-
