@@ -20,6 +20,7 @@ func extractHeaders(c *gin.Context) map[string]string {
 		"Authorization": c.GetHeader("Authorization"),
 		"X-CSRF-Token":  c.GetHeader("X-CSRF-Token"),
 		"Cookie":        c.GetHeader("Cookie"),
+		"Client-Type":   c.GetHeader("Client-Type"),
 		"Path":          c.Request.URL.Path,
 	}
 }
@@ -44,6 +45,13 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 
 		if headers["Authorization"] == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization header"})
+			c.Abort()
+			return
+		}
+
+		if headers["Client-Type"] == "" {
+
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Client header"})
 			c.Abort()
 			return
 		}
