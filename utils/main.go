@@ -15,7 +15,7 @@ import (
 )
 
 // extractHeaders obtiene las cabeceras comunes de autenticación del contexto
-func extractHeaders(c *gin.Context) map[string]string {
+func ExtractHeaders(c *gin.Context) map[string]string {
 	return map[string]string{
 		"Authorization": c.GetHeader("Authorization"),
 		"X-CSRF-Token":  c.GetHeader("X-CSRF-Token"),
@@ -26,7 +26,7 @@ func extractHeaders(c *gin.Context) map[string]string {
 }
 
 // applyHeaders aplica un conjunto de cabeceras a una solicitud HTTP
-func applyHeaders(req *http.Request, headers map[string]string) {
+func ApplyHeaders(req *http.Request, headers map[string]string) {
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
@@ -41,7 +41,7 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 		}
 
 		// Obtener cabeceras comunes
-		headers := extractHeaders(c)
+		headers := ExtractHeaders(c)
 
 		if headers["Authorization"] == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization header"})
@@ -65,7 +65,7 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 		}
 
 		// Aplicar cabeceras a la solicitud
-		applyHeaders(req, headers)
+		ApplyHeaders(req, headers)
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
@@ -190,8 +190,8 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string, c 
 	}
 
 	// Obtener y aplicar cabeceras comunes
-	headers := extractHeaders(c)
-	applyHeaders(req, headers)
+	headers := ExtractHeaders(c)
+	ApplyHeaders(req, headers)
 
 	// Crear un nuevo formulario multipart
 	var reqBody bytes.Buffer
