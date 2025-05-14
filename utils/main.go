@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -44,13 +45,14 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 		headers := ExtractHeaders(c)
 
 		if headers["Authorization"] == "" {
+			log.Println("Missing Authorization header")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization header"})
 			c.Abort()
 			return
 		}
 
 		if headers["Client-Type"] == "" {
-
+			log.Println("Missing Client header")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing Client header"})
 			c.Abort()
 			return
@@ -59,6 +61,7 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 		// Crear la solicitud para validar el JWT
 		req, err := http.NewRequest("POST", urlapiusuarios+"/api/v1/ValidateJWT", nil)
 		if err != nil {
+			log.Println("Error creating ValidateJWT request:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
 			c.Abort()
 			return
@@ -242,6 +245,35 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string, c 
 		return "", err
 	}
 	return result.Result, nil
+}
+
+func DeleteFile(filePath string, domain_server string, c *gin.Context) error {
+	// Preparar la solicitud al servicio de archivos
+	req, err := http.NewRequest("DELETE", domain_server+"api/v1/deleteFile?file_path="+filePath, nil)
+	if err != nil {
+		log.Println("Error al crear la solicitud:", err)
+		return fmt.Errorf("error al crear la solicitud: %v", err)
+	}
+
+	// Obtener y aplicar cabeceras comunes desde el contexto de Gin
+	headers := ExtractHeaders(c)
+	ApplyHeaders(req, headers)
+
+	// Hacer la solicitud HTTP
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error al realizar la petición: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Verificar la respuesta
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("error del servidor al eliminar el archivo: %s - %s", resp.Status, string(bodyBytes))
+	}
+
+	return nil
 }
 
 func GetFileKind(fileType string) string {
