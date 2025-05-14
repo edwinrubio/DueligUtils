@@ -1,4 +1,16 @@
 
+## v1.1.0 (2025-05-14)
+
+### Feat
+
+- **Delete-files**: is important to crud
+
+## v1.0.5 (2025-04-25)
+
+### Fix
+
+- **main.go**: Whole of these just to make public
+
 ## v1.0.4 (2025-04-25)
 
 ### Fix
