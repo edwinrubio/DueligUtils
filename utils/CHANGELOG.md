@@ -1,4 +1,10 @@
 
+## v1.2.1 (2025-05-29)
+
+### Fix
+
+- **problem-to-get-information**: great
+
 ## v1.2.0 (2025-05-29)
 
 ### Feat
