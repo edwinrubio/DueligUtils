@@ -1,4 +1,10 @@
 
+## v1.2.0 (2025-05-29)
+
+### Feat
+
+- **New-mthod**: These method is important to get token from headers
+
 ## v1.1.0 (2025-05-14)
 
 ### Feat
