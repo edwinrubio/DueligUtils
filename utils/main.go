@@ -150,6 +150,23 @@ func ExtractUserIDFromToken(bearerToken string) (primitive.ObjectID, error) {
 	return primitive.NilObjectID, fmt.Errorf("invalid token claims")
 }
 
+func GetTokenFromBearerString(bearerToken string) (string, error) {
+	if bearerToken == "" {
+		return "", fmt.Errorf("no authorization header found")
+	}
+
+	// Verificar y extraer el token
+	tokenParts := strings.Split(bearerToken, " ")
+	if len(tokenParts) != 2 {
+		return "", fmt.Errorf("invalid token format")
+	}
+
+	// Obtener el token
+	tokenString := tokenParts[1]
+
+	return tokenString, nil
+}
+
 func SaveImageFromUrl(url string, email string, urlsavefiles string) (string, error) {
 	reqBody, _ := json.Marshal(map[string]string{
 		"Url":      url,
