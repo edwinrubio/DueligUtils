@@ -150,8 +150,7 @@ func ExtractUserIDFromToken(bearerToken string) (primitive.ObjectID, error) {
 	return primitive.NilObjectID, fmt.Errorf("invalid token claims")
 }
 
-func GetTokenFromBearerString(ctx *gin.Context) (string, error) {
-	bearerToken := ctx.GetHeader("Authorization")
+func GetTokenFromBearerString(bearerToken string) (string, error) {
 	if bearerToken == "" {
 		return "", fmt.Errorf("no authorization header found")
 	}
