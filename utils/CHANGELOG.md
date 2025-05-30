@@ -1,4 +1,10 @@
 
+## v1.2.2 (2025-05-29)
+
+### Fix
+
+- **applied-the-real-chaneg**: because is not importat to give context
+
 ## v1.2.1 (2025-05-29)
 
 ### Fix
