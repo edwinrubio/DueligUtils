@@ -109,21 +109,7 @@ func makePostRequest(url string, reqBody []byte, kindBody string) (string, error
 	return result.Result, nil
 }
 
-func ExtractUserIDFromToken(bearerToken string) (primitive.ObjectID, error) {
-	// Obtener el header Authorization
-
-	if bearerToken == "" {
-		return primitive.NilObjectID, fmt.Errorf("no authorization header found")
-	}
-
-	// Verificar y extraer el token
-	tokenParts := strings.Split(bearerToken, " ")
-	if len(tokenParts) != 2 {
-		return primitive.NilObjectID, fmt.Errorf("invalid token format")
-	}
-
-	// Obtener el token
-	tokenString := tokenParts[1]
+func ExtractUserIDFromToken(tokenString string) (primitive.ObjectID, error) {
 
 	// Parsear el token sin verificar la firma
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
