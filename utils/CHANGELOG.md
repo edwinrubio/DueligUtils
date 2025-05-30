@@ -1,4 +1,10 @@
 
+## v1.2.3 (2025-05-30)
+
+### Fix
+
+- **Problem-to-get-if-from-token**: I just fix the problem left out some useless lines
+
 ## v1.2.2 (2025-05-29)
 
 ### Fix
