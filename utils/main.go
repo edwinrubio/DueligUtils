@@ -144,7 +144,7 @@ func GetTokenFromBearerString(bearerToken string) (string, error) {
 	// Verificar y extraer el token
 	tokenParts := strings.Split(bearerToken, " ")
 	if len(tokenParts) != 2 {
-		return "", fmt.Errorf("invalid token format")
+		return tokenParts[0], nil
 	}
 
 	// Obtener el token
