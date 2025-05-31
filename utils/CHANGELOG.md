@@ -1,4 +1,10 @@
 
+## v1.2.4 (2025-05-31)
+
+### Fix
+
+- **problem-git-get-token**: the token just get with one string
+
 ## v1.2.3 (2025-05-30)
 
 ### Fix
