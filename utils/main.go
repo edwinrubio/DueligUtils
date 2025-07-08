@@ -110,10 +110,19 @@ func makePostRequest(url string, reqBody []byte, kindBody string) (string, error
 }
 
 func ExtractUserIDFromToken(tokenString string) (primitive.ObjectID, error) {
+	// Si tokenString empieza con Bearer (cualquier variación), sobreescribirlo
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(tokenString)), "bearer") {
+		cleanToken, err := GetTokenFromBearerString(tokenString)
+		if err != nil {
+			return primitive.NilObjectID, fmt.Errorf("error extracting token from bearer string: %v", err)
+		}
+		tokenString = cleanToken
+	}
 
 	// Parsear el token sin verificar la firma
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
+		log.Println("Error parsing token:", err)
 		return primitive.NilObjectID, fmt.Errorf("error parsing token: %v", err)
 	}
 
@@ -144,7 +153,7 @@ func GetTokenFromBearerString(bearerToken string) (string, error) {
 	// Verificar y extraer el token
 	tokenParts := strings.Split(bearerToken, " ")
 	if len(tokenParts) != 2 {
-		return tokenParts[0], nil
+		return "", fmt.Errorf("invalid token format")
 	}
 
 	// Obtener el token
