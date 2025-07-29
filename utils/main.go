@@ -161,19 +161,21 @@ func GetTokenFromBearerString(bearerToken string) (string, error) {
 
 	return tokenString, nil
 }
-
-func SaveImageFromUrl(url string, email string, urlsavefiles string) (string, error) {
+//Esta funcion es para guardar imagenes desde una URL de google o facebook
+// Se usa para guardar la imagen de perfil del usuario
+// Se espera que la URL sea una imagen valida y que el email sea el del usuario
+func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, error) {
 	reqBody, _ := json.Marshal(map[string]string{
 		"Url":      url,
 		"Kindfile": "images",
-		"Email":    email,
+		"Acl":      acl,
 	})
 
 	path, err := makePostRequest(urlsavefiles+"ImagesFromUrl", reqBody, "application/json")
 	return path, err
 }
 
-func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string, c *gin.Context) (string, error) {
+func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context, acl string) (string, error) {
 	fileContent, err := file.Open()
 	if err != nil {
 		return "", err
@@ -224,7 +226,8 @@ func SaveFiles(file *multipart.FileHeader, email string, urlsavefiles string, c 
 	if err != nil {
 		return "", err
 	}
-	err = writer.WriteField("Email", email)
+
+	err = writer.WriteField("Acl", acl)
 	if err != nil {
 		return "", err
 	}
@@ -297,6 +300,7 @@ func GetFileKind(fileType string) string {
 		"image/webp",
 		"image/svg+xml",
 		"image/tiff",
+		"image/jpg",
 	}
 
 	// Verificar si es una imagen
