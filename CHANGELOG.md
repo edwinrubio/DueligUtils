@@ -1,3 +1,9 @@
+## v1.2.6 (2025-07-29)
+
+### Fix
+
+- **change-the-behavior-of-files-in-their-visibility**: delete the configuration of email because is not necesary
+
 ## v1.2.5 (2025-07-15)
 
 ### Fix
