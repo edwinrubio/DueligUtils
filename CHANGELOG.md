@@ -1,3 +1,9 @@
+## v1.2.7 (2025-08-04)
+
+### Fix
+
+- **I-made-some-changes-to-give-privacy**: privacy in the way to get files
+
 ## v1.2.6 (2025-07-29)
 
 ### Fix
