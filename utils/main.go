@@ -175,7 +175,7 @@ func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, erro
 	return path, err
 }
 
-func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context, acl string) (string, error) {
+func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
 	fileContent, err := file.Open()
 	if err != nil {
 		return "", err
@@ -223,11 +223,6 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context, 
 	}
 
 	err = writer.WriteField("Kindfile", filekind)
-	if err != nil {
-		return "", err
-	}
-
-	err = writer.WriteField("Acl", acl)
 	if err != nil {
 		return "", err
 	}
