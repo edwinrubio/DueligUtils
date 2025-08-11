@@ -1,3 +1,10 @@
+## v1.2.8 (2025-08-11)
+
+### Fix
+
+- **New-configurations-to-save-files-inside-of-s3**: these create a segmentation of files with private and public files
+- Construction of files inside of the way to save private files
+
 ## v1.2.7 (2025-08-04)
 
 ### Fix
