@@ -162,7 +162,8 @@ func GetTokenFromBearerString(bearerToken string) (string, error) {
 
 	return tokenString, nil
 }
-//Esta funcion es para guardar imagenes desde una URL de google o facebook
+
+// Esta funcion es para guardar imagenes desde una URL de google o facebook
 // Se usa para guardar la imagen de perfil del usuario
 // Se espera que la URL sea una imagen valida y que el email sea el del usuario
 func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, error) {
@@ -176,50 +177,42 @@ func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, erro
 	return path, err
 }
 
-func SaveFiles(file *multipart.FileHeader, url string, g *gin.Context) (string, error) {
-	// Si la URL contiene "Images" o "SavePrivateImages", forzar el tipo como imagen
-	if strings.Contains(url, "Images") || strings.Contains(url, "SavePrivateImages") {
-		return SaveFilesAsImage(file, url, g)
-	}
-
-	// Usar la función original para otros casos
-	path, err := SaveFiles(file, url, g)
-	if err != nil {
-		log.Println("Error al guardar el archivo:", err)
-		g.JSON(http.StatusInternalServerError, gin.H{"error": "Problems to save file"})
-		return "", err
-	}
-	return path, nil
-}
-
-func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
+// createMultipartFormData crea el formulario multipart común para ambos tipos de archivo
+func createMultipartFormData(file *multipart.FileHeader, kindfile string) (*bytes.Buffer, *multipart.Writer, error) {
 	fileContent, err := file.Open()
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
 	defer fileContent.Close()
 
-	// Validar que es una imagen por extensión antes de enviar
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	imageExtensions := map[string]bool{
-		".jpg":  true,
-		".jpeg": true,
-		".png":  true,
-		".gif":  true,
-		".webp": true,
-		".svg":  true,
-		".tiff": true,
-		".tif":  true,
-		".bmp":  true,
-		".ico":  true,
+	var reqBody bytes.Buffer
+	writer := multipart.NewWriter(&reqBody)
+
+	// Crear el campo 'file'
+	part, err := writer.CreateFormFile("file", file.Filename)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	if !imageExtensions[ext] {
-		return "", fmt.Errorf("el archivo debe ser una imagen válida, extensión recibida: %s", ext)
+	_, err = io.Copy(part, fileContent)
+	if err != nil {
+		return nil, nil, err
 	}
 
+	// Agregar el campo Kindfile
+	err = writer.WriteField("Kindfile", kindfile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	writer.Close()
+	return &reqBody, writer, nil
+}
+
+// executeFileUploadRequest realiza la petición HTTP común para subir archivos
+func executeFileUploadRequest(url string, body *bytes.Buffer, writer *multipart.Writer, c *gin.Context) (string, error) {
 	// Preparar la solicitud al servicio de archivos
-	req, err := http.NewRequest("POST", urlsavefiles, nil)
+	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -228,31 +221,10 @@ func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Co
 	headers := ExtractHeaders(c)
 	ApplyHeaders(req, headers)
 
-	// Crear un nuevo formulario multipart (igual que el curl)
-	var reqBody bytes.Buffer
-	writer := multipart.NewWriter(&reqBody)
-
-	// Solo crear el campo 'file' como en el curl
-	part, err := writer.CreateFormFile("file", file.Filename)
-	if err != nil {
-		return "", err
-	}
-	_, err = io.Copy(part, fileContent)
-	if err != nil {
-		return "", err
-	}
-
-	// Enviar Kindfile como "Images" para que el servidor sepa que es una imagen
-	err = writer.WriteField("Kindfile", "Images")
-	if err != nil {
-		return "", err
-	}
-	writer.Close()
-
 	// Establecer el tipo de contenido
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Body = io.NopCloser(&reqBody)
-	req.ContentLength = int64(reqBody.Len())
+	req.Body = io.NopCloser(body)
+	req.ContentLength = int64(body.Len())
 
 	// Hacer la solicitud HTTP
 	client := &http.Client{}
@@ -278,6 +250,92 @@ func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Co
 	return result.Result, nil
 }
 
+// detectFileKind detecta el tipo de archivo basándose en contenido y extensión
+func detectFileKind(file *multipart.FileHeader) (string, error) {
+	fileContent, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer fileContent.Close()
+
+	// Detectar el tipo de archivo
+	buffer := make([]byte, 512)
+	_, err = fileContent.Read(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	contentType := http.DetectContentType(buffer)
+	return GetFileKind(contentType, file.Filename), nil
+}
+
+func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
+	// Si la URL contiene "Images" o "SavePrivateImages", forzar el tipo como imagen
+	if strings.Contains(urlsavefiles, "Images") || strings.Contains(urlsavefiles, "SavePrivateImages") {
+		return SaveFilesAsImage(file, urlsavefiles, c)
+	}
+
+	// Detectar el tipo de archivo automáticamente
+	filekind, err := detectFileKind(file)
+	if err != nil {
+		log.Println("Error al detectar el tipo de archivo:", err)
+		return "", err
+	}
+
+	// Si no se pudo detectar el tipo, usar "Documents" por defecto
+	if filekind == "" {
+		filekind = "Documents"
+	}
+
+	// Crear el formulario multipart
+	reqBody, writer, err := createMultipartFormData(file, filekind)
+	if err != nil {
+		log.Println("Error al crear el formulario multipart:", err)
+		return "", err
+	}
+
+	// Construir la URL completa con el endpoint específico
+	fullURL := urlsavefiles + "Save" + filekind
+
+	// Ejecutar la petición
+	path, err := executeFileUploadRequest(fullURL, reqBody, writer, c)
+	if err != nil {
+		log.Println("Error al guardar el archivo:", err)
+		return "", err
+	}
+
+	return path, nil
+}
+
+func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
+	// Validar que es una imagen por extensión antes de enviar
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	imageExtensions := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+		".webp": true,
+		".svg":  true,
+		".tiff": true,
+		".tif":  true,
+		".bmp":  true,
+		".ico":  true,
+	}
+
+	if !imageExtensions[ext] {
+		return "", fmt.Errorf("el archivo debe ser una imagen válida, extensión recibida: %s", ext)
+	}
+
+	// Crear el formulario multipart usando la función auxiliar
+	reqBody, writer, err := createMultipartFormData(file, "Images")
+	if err != nil {
+		return "", err
+	}
+
+	// Ejecutar la petición usando la función auxiliar
+	return executeFileUploadRequest(urlsavefiles, reqBody, writer, c)
+}
 
 func DeleteFile(filePath string, domain_server string, c *gin.Context) error {
 	// Preparar la solicitud al servicio de archivos
@@ -386,8 +444,3 @@ func CORSMiddleware(cors_urls string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-
-
-
-
