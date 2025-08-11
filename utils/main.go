@@ -8,6 +8,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -175,33 +176,50 @@ func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, erro
 	return path, err
 }
 
-func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
+func SaveFiles(file *multipart.FileHeader, url string, g *gin.Context) (string, error) {
+	// Si la URL contiene "Images" o "SavePrivateImages", forzar el tipo como imagen
+	if strings.Contains(url, "Images") || strings.Contains(url, "SavePrivateImages") {
+		return SaveFilesAsImage(file, url, g)
+	}
+
+	// Usar la función original para otros casos
+	path, err := SaveFiles(file, url, g)
+	if err != nil {
+		log.Println("Error al guardar el archivo:", err)
+		g.JSON(http.StatusInternalServerError, gin.H{"error": "Problems to save file"})
+		return "", err
+	}
+	return path, nil
+}
+
+func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
 	fileContent, err := file.Open()
 	if err != nil {
 		return "", err
 	}
 	defer fileContent.Close()
 
-	// Detectar el tipo de archivo
-	buffer := make([]byte, 512)
-	_, err = fileContent.Read(buffer)
-	if err != nil {
-		return "", err
+	// Validar que es una imagen por extensión antes de enviar
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	imageExtensions := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+		".webp": true,
+		".svg":  true,
+		".tiff": true,
+		".tif":  true,
+		".bmp":  true,
+		".ico":  true,
 	}
 
-	filekind := GetFileKind(http.DetectContentType(buffer))
-
-	// Resetear el puntero del archivo
-	fileContent.Seek(0, io.SeekStart)
-
-	// Crear formulario para c.Request
-	err = c.Request.ParseMultipartForm(32 << 20) // 32 MB
-	if err != nil {
-		return "", err
+	if !imageExtensions[ext] {
+		return "", fmt.Errorf("el archivo debe ser una imagen válida, extensión recibida: %s", ext)
 	}
 
 	// Preparar la solicitud al servicio de archivos
-	req, err := http.NewRequest("POST", urlsavefiles+"Save"+filekind, nil)
+	req, err := http.NewRequest("POST", urlsavefiles, nil)
 	if err != nil {
 		return "", err
 	}
@@ -210,9 +228,11 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 	headers := ExtractHeaders(c)
 	ApplyHeaders(req, headers)
 
-	// Crear un nuevo formulario multipart
+	// Crear un nuevo formulario multipart (igual que el curl)
 	var reqBody bytes.Buffer
 	writer := multipart.NewWriter(&reqBody)
+
+	// Solo crear el campo 'file' como en el curl
 	part, err := writer.CreateFormFile("file", file.Filename)
 	if err != nil {
 		return "", err
@@ -222,11 +242,11 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 		return "", err
 	}
 
-	err = writer.WriteField("Kindfile", filekind)
+	// Enviar Kindfile como "Images" para que el servidor sepa que es una imagen
+	err = writer.WriteField("Kindfile", "Images")
 	if err != nil {
 		return "", err
 	}
-
 	writer.Close()
 
 	// Establecer el tipo de contenido
@@ -244,7 +264,8 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 
 	// Verificar la respuesta
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("received non-OK HTTP status: %s, response: %s", resp.Status, string(bodyBytes))
 	}
 
 	var result struct {
@@ -256,6 +277,7 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 	}
 	return result.Result, nil
 }
+
 
 func DeleteFile(filePath string, domain_server string, c *gin.Context) error {
 	// Preparar la solicitud al servicio de archivos
@@ -286,8 +308,31 @@ func DeleteFile(filePath string, domain_server string, c *gin.Context) error {
 	return nil
 }
 
-func GetFileKind(fileType string) string {
-	// Tipos MIME comunes para imágenes
+// GetFileKindImproved mejora la detección de tipos de archivo combinando MIME type y extensión
+func GetFileKind(contentType string, filename string) string {
+	// Primero verificar por extensión de archivo
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	// Extensiones de imagen comunes
+	imageExtensions := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+		".webp": true,
+		".svg":  true,
+		".tiff": true,
+		".tif":  true,
+		".bmp":  true,
+		".ico":  true,
+	}
+
+	// Si la extensión indica que es una imagen, retornar "Images"
+	if imageExtensions[ext] {
+		return "Images"
+	}
+
+	// Verificar por tipo MIME
 	imageTypes := []string{
 		"image/jpeg",
 		"image/png",
@@ -296,21 +341,22 @@ func GetFileKind(fileType string) string {
 		"image/svg+xml",
 		"image/tiff",
 		"image/jpg",
+		"image/bmp",
+		"image/x-icon",
 	}
 
-	// Verificar si es una imagen
 	for _, imgType := range imageTypes {
-		if fileType == imgType {
+		if contentType == imgType {
 			return "Images"
 		}
 	}
 
 	// Verificar si es un PDF
-	if fileType == "application/pdf" {
+	if contentType == "application/pdf" || ext == ".pdf" {
 		return "Documents"
 	}
 
-	// Si no es ninguno de los tipos admitidos
+	// Si no se puede determinar, verificar si la URL sugiere que es para imágenes
 	return ""
 }
 
