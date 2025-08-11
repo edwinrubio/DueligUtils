@@ -1,3 +1,9 @@
+## v1.2.9 (2025-08-11)
+
+### Fix
+
+- **problem-of-redundnace-to-save-files**: that was fixed
+
 ## v1.2.8 (2025-08-11)
 
 ### Fix
