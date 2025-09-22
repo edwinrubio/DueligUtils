@@ -1,3 +1,9 @@
+## v1.2.10 (2025-09-22)
+
+### Fix
+
+- **Problems-with-routes-of-files**: that was weird
+
 ## v1.2.9 (2025-08-11)
 
 ### Fix
