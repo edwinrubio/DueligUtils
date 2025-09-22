@@ -297,10 +297,12 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 	// Construir la URL completa con el endpoint específico
 	fullURL := urlsavefiles
 
+
 	// Ejecutar la petición
 	path, err := executeFileUploadRequest(fullURL, reqBody, writer, c)
 	if err != nil {
 		log.Println("Error al guardar el archivo:", err)
+		log.Println("URL utilizada:", fullURL)
 		return "", err
 	}
 
