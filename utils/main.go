@@ -295,7 +295,7 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 	}
 
 	// Construir la URL completa con el endpoint específico
-	fullURL := urlsavefiles + "Save" + filekind
+	fullURL := urlsavefiles
 
 	// Ejecutar la petición
 	path, err := executeFileUploadRequest(fullURL, reqBody, writer, c)
