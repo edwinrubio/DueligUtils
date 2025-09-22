@@ -1,3 +1,9 @@
+## v1.2.11 (2025-09-22)
+
+### Fix
+
+- **Add-to-new-configuration-of-url-log**: thats it necesary to see the url of upload documents
+
 ## v1.2.10 (2025-09-22)
 
 ### Fix
