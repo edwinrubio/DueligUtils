@@ -1,3 +1,9 @@
+## v1.3.0 (2025-09-26)
+
+### Feat
+
+- **New-configuration-of-files-to-update**: is necesary to delete files and update with new files
+
 ## v1.2.11 (2025-09-22)
 
 ### Fix
