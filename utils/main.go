@@ -36,12 +36,6 @@ func ApplyHeaders(req *http.Request, headers map[string]string) {
 
 func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Permitir que las peticiones a la ruta raíz pasen sin validación
-		if c.Request.URL.Path == "/api/v1/dcd/" {
-			c.Next()
-			return
-		}
-
 		// Obtener cabeceras comunes
 		headers := ExtractHeaders(c)
 
@@ -268,8 +262,18 @@ func detectFileKind(file *multipart.FileHeader) (string, error) {
 	contentType := http.DetectContentType(buffer)
 	return GetFileKind(contentType, file.Filename), nil
 }
+///////////////////////////////////////////////////////////////
+//				Seccion de manejo de archivos
+///////////////////////////////////////////////////////////////
 
-func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
+func SaveFiles(urlsavefiles string,  c *gin.Context, Filename string) (string, error) {
+
+	file, err := c.FormFile(Filename)
+	if err != nil {
+		log.Println("Error al obtener el archivo del formulario:", err)
+		return "", err
+	}
+
 	// Si la URL contiene "Images" o "SavePrivateImages", forzar el tipo como imagen
 	if strings.Contains(urlsavefiles, "Images") || strings.Contains(urlsavefiles, "SavePrivateImages") {
 		return SaveFilesAsImage(file, urlsavefiles, c)
@@ -282,11 +286,6 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 		return "", err
 	}
 
-	// Si no se pudo detectar el tipo, usar "Documents" por defecto
-	if filekind == "" {
-		filekind = "Documents"
-	}
-
 	// Crear el formulario multipart
 	reqBody, writer, err := createMultipartFormData(file, filekind)
 	if err != nil {
@@ -296,7 +295,6 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 
 	// Construir la URL completa con el endpoint específico
 	fullURL := urlsavefiles
-
 
 	// Ejecutar la petición
 	path, err := executeFileUploadRequest(fullURL, reqBody, writer, c)
@@ -308,6 +306,8 @@ func SaveFiles(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) 
 
 	return path, nil
 }
+
+
 
 func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
 	// Validar que es una imagen por extensión antes de enviar
@@ -419,6 +419,44 @@ func GetFileKind(contentType string, filename string) string {
 	// Si no se puede determinar, verificar si la URL sugiere que es para imágenes
 	return ""
 }
+
+// UpdateFile actualiza un archivo siguiendo el orden: 1. Guardar nuevo archivo, 2. Eliminar archivo viejo
+// Parámetros:
+// - file: El nuevo archivo a guardar (multipart.FileHeader)
+// - oldFilePath: La ruta del archivo viejo que se va a eliminar
+// - url: URL del servicio donde guardar el nuevo archivo
+// - g: Contexto de Gin
+// Retorna la ruta del nuevo archivo guardado
+func UpdateFile(FileNameHeader string, oldFilePath string, url string, g *gin.Context) (string, error) {
+	// Paso 1: Guardar el nuevo archivo
+	log.Printf("Guardando nuevo archivo: %s", FileNameHeader)
+	newFilePath, err := SaveFiles(url, g, FileNameHeader)
+	if err != nil {
+		log.Printf("Error al guardar el nuevo archivo: %v", err)
+		return "", fmt.Errorf("error al guardar el nuevo archivo: %v", err)
+	}
+
+	log.Printf("Nuevo archivo guardado exitosamente en: %s", newFilePath)
+
+	// Paso 2: Eliminar el archivo viejo (solo si se guardó exitosamente el nuevo)
+	if oldFilePath != "" {
+		log.Printf("Eliminando archivo viejo: %s", oldFilePath)
+		err = DeleteFile(oldFilePath, url, g)
+		if err != nil {
+			log.Printf("Advertencia: No se pudo eliminar el archivo viejo '%s': %v", oldFilePath, err)
+			// No retornamos error aquí porque el nuevo archivo ya se guardó exitosamente
+			// Solo logueamos la advertencia
+		} else {
+			log.Printf("Archivo viejo eliminado exitosamente: %s", oldFilePath)
+		}
+	}
+
+	return newFilePath, nil
+}
+
+///////////////////////////////////////////////////////////////
+//				Seccion de manejo de CORS
+///////////////////////////////////////////////////////////////
 
 // CORSMiddleware configura los encabezados necesarios para permitir peticiones CORS
 func CORSMiddleware(cors_urls string) gin.HandlerFunc {
