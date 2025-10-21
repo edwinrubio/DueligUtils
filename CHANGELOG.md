@@ -1,3 +1,9 @@
+## v1.3.1 (2025-10-20)
+
+### Fix
+
+- **I-fix-the-configuration-to-delete-files**: the way to use the url in the methos was wrong
+
 ## v1.3.0 (2025-09-26)
 
 ### Feat
