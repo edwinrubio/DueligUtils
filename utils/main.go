@@ -262,11 +262,12 @@ func detectFileKind(file *multipart.FileHeader) (string, error) {
 	contentType := http.DetectContentType(buffer)
 	return GetFileKind(contentType, file.Filename), nil
 }
+
 ///////////////////////////////////////////////////////////////
 //				Seccion de manejo de archivos
 ///////////////////////////////////////////////////////////////
 
-func SaveFiles(urlsavefiles string,  c *gin.Context, Filename string) (string, error) {
+func SaveFiles(urlsavefiles string, c *gin.Context, Filename string) (string, error) {
 
 	file, err := c.FormFile(Filename)
 	if err != nil {
@@ -307,8 +308,6 @@ func SaveFiles(urlsavefiles string,  c *gin.Context, Filename string) (string, e
 	return path, nil
 }
 
-
-
 func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Context) (string, error) {
 	// Validar que es una imagen por extensión antes de enviar
 	ext := strings.ToLower(filepath.Ext(file.Filename))
@@ -341,7 +340,7 @@ func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Co
 
 func DeleteFile(filePath string, domain_server string, c *gin.Context) error {
 	// Preparar la solicitud al servicio de archivos
-	req, err := http.NewRequest("DELETE", domain_server+"api/v1/deleteFile?file_path="+filePath, nil)
+	req, err := http.NewRequest("DELETE", domain_server+"?file_path="+filePath, nil)
 	if err != nil {
 		log.Println("Error al crear la solicitud:", err)
 		return fmt.Errorf("error al crear la solicitud: %v", err)
@@ -427,10 +426,10 @@ func GetFileKind(contentType string, filename string) string {
 // - url: URL del servicio donde guardar el nuevo archivo
 // - g: Contexto de Gin
 // Retorna la ruta del nuevo archivo guardado
-func UpdateFile(FileNameHeader string, oldFilePath string, url string, g *gin.Context) (string, error) {
+func UpdateFile(FileNameHeader string, oldFilePath string, urlSaveFile string, urlDeleteFile string, g *gin.Context) (string, error) {
 	// Paso 1: Guardar el nuevo archivo
 	log.Printf("Guardando nuevo archivo: %s", FileNameHeader)
-	newFilePath, err := SaveFiles(url, g, FileNameHeader)
+	newFilePath, err := SaveFiles(urlSaveFile, g, FileNameHeader)
 	if err != nil {
 		log.Printf("Error al guardar el nuevo archivo: %v", err)
 		return "", fmt.Errorf("error al guardar el nuevo archivo: %v", err)
@@ -441,7 +440,7 @@ func UpdateFile(FileNameHeader string, oldFilePath string, url string, g *gin.Co
 	// Paso 2: Eliminar el archivo viejo (solo si se guardó exitosamente el nuevo)
 	if oldFilePath != "" {
 		log.Printf("Eliminando archivo viejo: %s", oldFilePath)
-		err = DeleteFile(oldFilePath, url, g)
+		err = DeleteFile(oldFilePath, urlDeleteFile, g)
 		if err != nil {
 			log.Printf("Advertencia: No se pudo eliminar el archivo viejo '%s': %v", oldFilePath, err)
 			// No retornamos error aquí porque el nuevo archivo ya se guardó exitosamente
