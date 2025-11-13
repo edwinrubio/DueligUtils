@@ -171,6 +171,32 @@ func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, erro
 	return path, err
 }
 
+
+// getContentTypeFromExtension detecta el Content-Type correcto basándose en la extensión del archivo
+func getContentTypeFromExtension(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	
+	contentTypes := map[string]string{
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".png":  "image/png",
+		".gif":  "image/gif",
+		".webp": "image/webp",
+		".svg":  "image/svg+xml",
+		".bmp":  "image/bmp",
+		".ico":  "image/x-icon",
+		".tiff": "image/tiff",
+		".tif":  "image/tiff",
+		".pdf":  "application/pdf",
+	}
+	
+	if contentType, exists := contentTypes[ext]; exists {
+		return contentType
+	}
+	
+	return "application/octet-stream"
+}
+
 // createMultipartFormData crea el formulario multipart común para ambos tipos de archivo
 func createMultipartFormData(file *multipart.FileHeader, kindfile string) (*bytes.Buffer, *multipart.Writer, error) {
 	fileContent, err := file.Open()
@@ -182,11 +208,15 @@ func createMultipartFormData(file *multipart.FileHeader, kindfile string) (*byte
 	var reqBody bytes.Buffer
 	writer := multipart.NewWriter(&reqBody)
 
-	// Crear el campo 'file'
-	part, err := writer.CreateFormFile("file", file.Filename)
-	if err != nil {
-		return nil, nil, err
-	}
+	// Detectar el Content-Type correcto basado en la extensión del archivo
+	contentType := getContentTypeFromExtension(file.Filename)
+	
+	// Crear el campo 'file' con el Content-Type explícito
+	h := make(map[string][]string)
+	h["Content-Disposition"] = []string{`form-data; name="file"; filename="` + file.Filename + `"`}
+	h["Content-Type"] = []string{contentType}
+	
+	part, err := writer.CreatePart(h)
 
 	_, err = io.Copy(part, fileContent)
 	if err != nil {
