@@ -171,7 +171,6 @@ func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, erro
 	return path, err
 }
 
-
 // getContentTypeFromExtension detecta el Content-Type correcto basándose en la extensión del archivo
 func getContentTypeFromExtension(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -217,6 +216,9 @@ func createMultipartFormData(file *multipart.FileHeader, kindfile string) (*byte
 	h["Content-Type"] = []string{contentType}
 	
 	part, err := writer.CreatePart(h)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	_, err = io.Copy(part, fileContent)
 	if err != nil {
