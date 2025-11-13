@@ -1,3 +1,13 @@
+## v1.4.0 (2025-11-12)
+
+### Feat
+
+- configuration to upload image files
+
+### Fix
+
+- **New-configuration-of-files-to-upload-images**: ds
+
 ## v1.3.1 (2025-10-20)
 
 ### Fix
