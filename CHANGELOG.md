@@ -1,3 +1,9 @@
+## v1.5.0 (2025-12-16)
+
+### Feat
+
+- **New-function-to-hash**: is importat to keep the password secure
+
 ## v1.4.0 (2025-11-12)
 
 ### Feat
