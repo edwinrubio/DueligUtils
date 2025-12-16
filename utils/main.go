@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,6 +85,23 @@ func ValidateSession(urlapiusuarios string) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func Sha512Encrypt(text string) string {
+	// Crear un nuevo hash SHA-512
+	hasher := sha512.New()
+
+	// Escribir el texto plano en el hash
+	hasher.Write([]byte(text))
+
+	// Obtener el hash resultante como un slice de bytes
+	hashBytes := hasher.Sum(nil)
+
+	// Convertir el slice de bytes a una cadena hexadecimal
+	hashHex := hex.EncodeToString(hashBytes)
+
+	return hashHex
+
 }
 
 func makePostRequest(url string, reqBody []byte, kindBody string) (string, error) {
