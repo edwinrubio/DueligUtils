@@ -529,5 +529,3 @@ func TokenCurrentUserID(c *gin.Context) (string, error) {
 
 	return token.Hex(), nil
 }
-
-
