@@ -515,3 +515,17 @@ func CORSMiddleware(cors_urls string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func TokenCurrentUserID(c *gin.Context) (string, error) {
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		return "", fmt.Errorf("no token provided")
+	}
+
+	token, err := ExtractUserIDFromToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+
+	return token.Hex(), nil
+}
