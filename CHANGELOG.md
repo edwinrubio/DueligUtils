@@ -1,3 +1,9 @@
+## v1.6.0 (2025-12-18)
+
+### Feat
+
+- **New-function-to-add-hash-512**: this is necesary to autentication
+
 ## v1.5.1 (2025-12-18)
 
 ### Fix
