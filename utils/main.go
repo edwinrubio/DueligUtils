@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -174,7 +176,7 @@ func SaveImageFromUrl(url string, acl string, urlsavefiles string) (string, erro
 // getContentTypeFromExtension detecta el Content-Type correcto basándose en la extensión del archivo
 func getContentTypeFromExtension(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
-	
+
 	contentTypes := map[string]string{
 		".jpg":  "image/jpeg",
 		".jpeg": "image/jpeg",
@@ -188,11 +190,11 @@ func getContentTypeFromExtension(filename string) string {
 		".tif":  "image/tiff",
 		".pdf":  "application/pdf",
 	}
-	
+
 	if contentType, exists := contentTypes[ext]; exists {
 		return contentType
 	}
-	
+
 	return "application/octet-stream"
 }
 
@@ -209,12 +211,12 @@ func createMultipartFormData(file *multipart.FileHeader, kindfile string) (*byte
 
 	// Detectar el Content-Type correcto basado en la extensión del archivo
 	contentType := getContentTypeFromExtension(file.Filename)
-	
+
 	// Crear el campo 'file' con el Content-Type explícito
 	h := make(map[string][]string)
 	h["Content-Disposition"] = []string{`form-data; name="file"; filename="` + file.Filename + `"`}
 	h["Content-Type"] = []string{contentType}
-	
+
 	part, err := writer.CreatePart(h)
 	if err != nil {
 		return nil, nil, err
@@ -528,4 +530,11 @@ func TokenCurrentUserID(c *gin.Context) (string, error) {
 	}
 
 	return token.Hex(), nil
+}
+
+func Sha512Encrypt(password string) string {
+	hasher := sha512.New()
+	hasher.Write([]byte(password))
+	hashBytes := hasher.Sum(nil)
+	return hex.EncodeToString(hashBytes)
 }
