@@ -4,6 +4,17 @@
 
 - **Create-new-method-in-main**: These method just get the id from jwt token
 
+### Fix
+
+- **fweawdffwe**: fwefqwefewqfweq
+- **some-problems-with-the-version-of-app**: version problemas
+
+## v1.5.0 (2025-12-18)
+
+### Feat
+
+- **Create-new-method-in-main**: These method just get the id from jwt token
+
 ## v1.4.0 (2025-11-12)
 
 ### Feat
