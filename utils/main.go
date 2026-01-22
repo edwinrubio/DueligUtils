@@ -189,6 +189,7 @@ func getContentTypeFromExtension(filename string) string {
 		".tiff": "image/tiff",
 		".tif":  "image/tiff",
 		".pdf":  "application/pdf",
+		".heic": "image/heic",
 	}
 
 	if contentType, exists := contentTypes[ext]; exists {
@@ -356,6 +357,7 @@ func SaveFilesAsImage(file *multipart.FileHeader, urlsavefiles string, c *gin.Co
 		".tif":  true,
 		".bmp":  true,
 		".ico":  true,
+		".heic": true,
 	}
 
 	if !imageExtensions[ext] {
@@ -418,6 +420,7 @@ func GetFileKind(contentType string, filename string) string {
 		".tif":  true,
 		".bmp":  true,
 		".ico":  true,
+		".heic": true,
 	}
 
 	// Si la extensión indica que es una imagen, retornar "Images"
@@ -436,6 +439,7 @@ func GetFileKind(contentType string, filename string) string {
 		"image/jpg",
 		"image/bmp",
 		"image/x-icon",
+		"image/heic",
 	}
 
 	for _, imgType := range imageTypes {
