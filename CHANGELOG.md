@@ -1,3 +1,9 @@
+## v1.7.0 (2026-01-22)
+
+### Feat
+
+- **New-format-of-image**: this is important to manage images of iphone
+
 ## v1.6.0 (2025-12-18)
 
 ### Feat
