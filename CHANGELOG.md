@@ -1,3 +1,9 @@
+## v1.8.0 (2026-02-10)
+
+### Feat
+
+- **new-function-to-see-the-ownership-de-una-cnaha-en-un-id**: si el id si pertenece a ese centro deportivo
+
 ## v1.7.0 (2026-01-22)
 
 ### Feat
