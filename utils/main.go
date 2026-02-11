@@ -542,3 +542,34 @@ func Sha512Encrypt(password string) string {
 	hashBytes := hasher.Sum(nil)
 	return hex.EncodeToString(hashBytes)
 }
+
+// VerifyCDOwnership verifica si el usuario es propietario del centro deportivo
+func VerifyCDOwnership(urlapicd string, idCD string, idPropietario string, c *gin.Context) (bool, error) {
+	headers := ExtractHeaders(c)
+
+	// Construir URL con query parameters
+	url := fmt.Sprintf("%s/api/v1/cd/verifyownership?idCD=%s&idPropietario=%s", urlapicd, idCD, idPropietario)
+
+	// Crear solicitud GET
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	ApplyHeaders(req, headers)
+
+	// Enviar solicitud
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("failed to make request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Si el status es 200, el usuario es propietario
+	if resp.StatusCode == http.StatusOK {
+		return true, nil
+	}
+
+	return false, nil
+}
