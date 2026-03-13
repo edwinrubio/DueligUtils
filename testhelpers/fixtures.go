@@ -27,8 +27,8 @@ func NewCDOPayload(suffix string) map[string]interface{} {
 // precio: price per hour in COP centavos (e.g., 5000000 = $50,000 COP)
 func NewCanchaPayload(nombre string, precioCentavos int) map[string]interface{} {
 	horario := map[string]interface{}{
-		"hora_inicio": "08:00",
-		"hora_fin":    "22:00",
+		"hora_inicio": int16(800),
+		"hora_fin":    int16(2200),
 		"precio":      precioCentavos,
 	}
 	return map[string]interface{}{
