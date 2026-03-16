@@ -26,6 +26,7 @@ func ExtractHeaders(c *gin.Context) map[string]string {
 		"Cookie":        c.GetHeader("Cookie"),
 		"Client-Type":   c.GetHeader("Client-Type"),
 		"Path":          c.Request.URL.Path,
+		"X-Request-ID":  c.GetHeader("X-Request-ID"),
 	}
 }
 
