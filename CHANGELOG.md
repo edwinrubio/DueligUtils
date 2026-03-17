@@ -1,3 +1,17 @@
+## v1.9.0 (2026-03-16)
+
+### Feat
+
+- **04-01**: add X-Request-ID to ExtractHeaders in DueligUtils
+- **04-01**: create RequestIDMiddleware in DueligUtils
+- **01-03**: add shared test helpers package
+
+### Fix
+
+- **04-01**: add github.com/google/uuid dependency to go.mod
+- **02-01**: fix testhelpers auth.go for correct endpoints and JSON field
+- **03-01**: Fix NewCanchaPayload to use int16 hora values
+
 ## v1.8.0 (2026-02-10)
 
 ### Feat
